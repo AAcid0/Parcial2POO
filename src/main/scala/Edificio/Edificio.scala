@@ -5,8 +5,7 @@ import scala.util._
 class Edificio
 {
     /*Atributos*/
-    //var a = new Salon("salon")
-    var _listaSalones : Try[List[Salon]] = Success(List(/*a*/))
+    var _listaSalones : List[Salon] = List()
     var _horaSistema : Map[Int, Int] = Map()
 
     /*Getters*/
@@ -17,60 +16,50 @@ class Edificio
     def horaSistema_=(newHora : Map[Int, Int]) = _horaSistema = newHora
     
     /*Metodos*/
-    def agregarSalon(nombreSalon : String) : Unit =
-    {
-        var aula : Salon = new Salon(nombreSalon)
-        _listaSalones match
-        {
-            case Success(s) => {
-                var je = aula :: s
-                //aula :: s
-            }
-        }
-        //_listaSalones = aula :: _listaSalones
-    }
-
-    def mostrarSalones() : Try[List[Salon]] =
+    def agregarSalon(nombreSalon : String) : Try[Unit] =
     {
         Try
         {
-            var nuevaLista : Try[List[Salon]] = Success(List())
-            _listaSalones match
+            var aula : Salon = new Salon(nombreSalon)
+            if(nombreSalon != "")
             {
-                case Success(s) => {
-                    if(s.nonEmpty)
-                    {
-                        return Try{s}
-                        //nuevaLista = s
-                    }
-                    else
-                    {
-                        throw new Exception("La lista de los salones se encuentra vacia")
-                    }
-                    //return nuevaLista
-                }
+                _listaSalones = aula :: _listaSalones
             }
-            
+            else
+            {
+                throw new Exception("No se ingreso un nombre valido para el salon")
+            }
         }
+    }
+
+    def comprobarSalones() : Try[Unit] =
+    {
+        Try
+        {
+            if(_listaSalones.isEmpty)
+            {
+                throw new Exception("La lista de los salones se encuentra vacia")
+            }
+        }
+    }
+
+    def mostrarSalones() : List[Salon] =
+    {
+        return _listaSalones
     }
 
     def consultarSalon(nameSalon : String) : Option[Salon] =
     {
         var aux : Option[Salon] = None
-        _listaSalones match
+        if(_listaSalones.nonEmpty)
         {
-            case Success(s) => {
-                if(s.nonEmpty)
-                {
-                    aux = s.filter(i => i.nomSalon == nameSalon).headOption
-                }
-                else
-                {
-                    println("No hay salones.")
-                }
-                return aux
-            }
+            aux = _listaSalones.filter(i => i.nomSalon == nameSalon).headOption
         }
+        else
+        {
+            println("No hay salones.")
+        }
+        return aux
         
     }
 
@@ -81,7 +70,24 @@ class Edificio
         salonAuxi match
         {
             case Some(s) => salonAuxi.get._listaReservas = mapAuxi ++ salonAuxi.get._listaReservas
+            case None => println("El salon no existe.")
         } 
+    }
+
+    def verificarSalon(nombre : String) : Try[Unit] =
+    {
+        Try
+        {
+            if(nombre == "")
+            {
+                throw new Exception("No se ingresó un nombre de salon valido")
+            }
+            var prueba = _listaSalones.filter(i => i.nomSalon == nombre)
+            if(prueba.isEmpty)
+            {
+                throw new Exception("El salon ingresado no se encuentra registrado.")
+            }
+        }
     }
 
 }

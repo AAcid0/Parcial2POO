@@ -19,7 +19,7 @@ object Interfaz extends App
     var mA = fM.format(hoy) //mA = minuto actual
     var hA = fH.format(hoy) //hA = hora actual
     var horaActual = Map(hA.toInt -> mA.toInt)
-    var tempIdeal = 23
+    var tempIdeal = 23 //temperatura ideal inicial
 
     while(!cerrarSistema)
     {
@@ -40,17 +40,23 @@ object Interfaz extends App
                 println("Agregar Nuevo\n==============")
                 println("Ingrese nombre de Nuevo salon: ")
                 var nam : String = StdIn.readLine()
-                smartEdi.agregarSalon(nam)
+                var nuevo = smartEdi.agregarSalon(nam)
+                nuevo match
+                {
+                    case Success(s) => println("Salon agregado con exito.")
+                    case Failure(f) => println(f)
+                }
             }
 
             case 2 => {
                 println("\nSalones En El Edificio")
                 println("===========================")
-                var salones : Try[List[Salon]] = smartEdi.mostrarSalones()
-                salones match
+                var comprobar = smartEdi.comprobarSalones()
+                comprobar match
                 {
                     case Success(s) => {
-                        s.foreach(i => {
+                        var salones : List[Salon] = smartEdi.mostrarSalones()
+                        salones.foreach(i => {
                             println("==================\nNombre: " + i.nomSalon + "\nDisponible: " + i.disponible + 
                             "\nReservas: " + i.listaReservas.keySet + "\n==================")
                         })
@@ -58,7 +64,6 @@ object Interfaz extends App
                     case Failure(f) => println(f)
                 }
             }
-
             case 3 => {
                 println("\nConsultar Salon Especifico")
                 println("===========================")
@@ -67,55 +72,9 @@ object Interfaz extends App
                 var salon : Option[Salon] = smartEdi.consultarSalon(nom)
                 salon match
                 {
-                    case Some(s) => {
-                        //si en listaReservas hay una reserva para la siguiente hora de la actual y el salon esta disponible
-                        var aux = horaActual.head
-                        var horaNext = (aux._1) + 1
-                        var horaAnt = (aux._1) - 1
-                        /*verificar si existe una reserva a la hora inmediatamente siguiente a la actual*/
-                        if(salon.get.listaReservas.contains(horaNext) && salon.get.disponible == true)
-                        {
-                            if(aux._2 >= 55) //requerimiento 1, parte 1
-                            {
-                                salon.get.luzOn = true
-
-                            }
-                            if(aux._2 >= 50) //requerimiento 4, parte 1
-                            {
-                                salon.get.acOn = true
-                                salon.get.temperatura = tempIdeal                               
-                            }
-                            if(aux._2 >= 45) //requerimiento 8
-                            {
-                                salon.get.disponible = false
-                                salon.get.seguroPuerta = false
-                            }                           
-                            mostarInfo(salon)
-                        }
-                        //si en listaReservas habia una reserva para la hora anterior a la actual y disponible = false
-                        //osea, si habia una clase en curso
-                        else if(salon.get.listaReservas.contains(horaAnt) && salon.get.disponible == false)
-                        {
-                            if(aux._2 >= 10) //requerimiento 1, parte 2
-                            {
-                                salon.get.luzOn = false
-                                salon.get.disponible = true
-                                salon.get.seguroPuerta = true
-
-                            }
-                            if(aux._2 >= 5) //requerimiento 4, parte 2
-                            {
-                                salon.get.acOn = false
-                                salon.get.temperatura = 30
-                            }
-                            mostarInfo(salon)
-                        }  
-                        else
-                        {
-                            mostarInfo(salon)
-                        }
-                    }
+                    case Some(s) => {modificarDatos(salon)}
                 }
+                
             }
 
             case 4 => {
@@ -123,10 +82,24 @@ object Interfaz extends App
                 println("===========================")
                 println("Nombre salon a reservar: ")
                 var name : String = StdIn.readLine()
-                println("Hora a reservar: ")
-                var hora : Int = StdIn.readInt()
-                smartEdi.realizarReserva(name, hora)
-                println("Salon reservado a la hora acordada.") /* verificar que no haya reserva previa a la misma hora*/
+                var probar = smartEdi.verificarSalon(name)
+                probar match
+                {
+                    case Success(s) => {
+                        println("Hora a reservar: ")
+                        var hora : Int = StdIn.readInt()
+                        if(hora == 0 || hora > 12)
+                        {
+                            println("Horario Académico: 7 AM A 7 PM, Ingrese una hora diferente.")
+                        }
+                        else
+                        {
+                            smartEdi.realizarReserva(name, hora)
+                            println("Salon reservado a la hora acordada.")
+                        }
+                    }
+                    case Failure(f) => println(f)
+                }
             }
 
             case 5 => { //requerimiento 5
@@ -158,9 +131,18 @@ object Interfaz extends App
                         tempIdeal = newTemp
                         ("Temperatura ideal actualizada.")
                     }
-
+                    case default => {
+                        println("Por favor ingrese una opcion valida")
+                    }
                 }
-
+            }
+            case 6 => {
+                println("Hasta pronto")
+                println("Cerrando sistema...")
+                cerrarSistema = true
+            }
+            case default => {
+                println("Por favor ingrese una opcion valida")
             }
         }
         
@@ -171,8 +153,62 @@ object Interfaz extends App
         {
             case Some(s) => {
                 println("\nNombre: " + salon.get.nomSalon + "\nDisponible: " + salon.get.disponible +
-                "\nTemperatura: " + salon.get.temperatura + " °C" + "\nReservas: " + salon.get.listaReservas +
+                "\nTemperatura: " + salon.get.temperatura + " °C" + "\nReservas: " + salon.get.listaReservas.keySet +
                 "\n¿Esta cerrado?: " + salon.get.seguroPuerta + "\n¿Luz encendida?: " + salon.get.luzOn)
+            }
+            case None => println("El salon no existe.")
+        }
+    }
+    def modificarDatos(salon : Option[Salon]) : Unit =
+    {
+        //var salon : Option[Salon] = smartEdi.consultarSalon(nom)
+        salon match
+        {
+            case Some(s) => {
+            //si en listaReservas hay una reserva para la siguiente hora de la actual y el salon esta disponible
+            var aux = horaActual.head
+            var horaNext = (aux._1) + 1
+            var horaAnt = (aux._1) - 1
+            /*verificar si existe una reserva a la hora inmediatamente siguiente a la actual*/
+            if(salon.get.listaReservas.contains(horaNext) && salon.get.disponible == true)
+            {
+                if(aux._2 >= 55) //requerimiento 1, parte 1
+                {
+                    salon.get.luzOn = true
+                }
+                if(aux._2 >= 50) //requerimiento 4, parte 1
+                {
+                    salon.get.acOn = true
+                    salon.get.temperatura = tempIdeal                               
+                }
+                if(aux._2 >= 45) //requerimiento 8
+                {
+                    salon.get.disponible = false
+                    salon.get.seguroPuerta = false
+                }                           
+                mostarInfo(salon)
+            }
+            //si en listaReservas habia una reserva para la hora anterior a la actual y disponible = false
+            //osea, si habia una clase en curso
+            else if(salon.get.listaReservas.contains(horaAnt) && salon.get.disponible == false)
+            {
+                if(aux._2 >= 10) //requerimiento 1, parte 2
+                {
+                    salon.get.luzOn = false
+                    salon.get.disponible = true
+                    salon.get.seguroPuerta = true
+                }
+                if(aux._2 >= 5) //requerimiento 4, parte 2
+                {
+                    salon.get.acOn = false
+                    salon.get.temperatura = 30
+                }
+                mostarInfo(salon)
+            }  
+            else
+            {
+                mostarInfo(salon)
+            }
             }
         }
     }
