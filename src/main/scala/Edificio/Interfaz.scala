@@ -56,7 +56,7 @@ object Interfaz extends App
                 {
                     case Success(s) => {
                         var salones : List[Salon] = smartEdi.mostrarSalones()
-                        salones.foreach(i => {
+                        salones.foreach(i => {   
                             println("==================\nNombre: " + i.nomSalon + "\nDisponible: " + i.disponible + 
                             "\nReservas: " + i.listaReservas.keySet + "\n==================")
                         })
@@ -69,10 +69,17 @@ object Interfaz extends App
                 println("===========================")
                 println("Ingrese nombre del salon a consultar")
                 var nom : String = StdIn.readLine()
-                var salon : Option[Salon] = smartEdi.consultarSalon(nom)
-                salon match
+                var vef = smartEdi.verificarSalon(nom)
+                vef match
                 {
-                    case Some(s) => {modificarDatos(salon)}
+                    case Success(a) => {
+                        var salon : Option[Salon] = smartEdi.consultarSalon(nom)
+                        salon match
+                        {
+                            case Some(s) => {modificarDatos(salon)}
+                        }
+                    }
+                    case Failure(f) => println(f)
                 }
                 
             }
